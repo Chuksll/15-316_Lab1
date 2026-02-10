@@ -205,3 +205,15 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+
+# Pdfs
+*.pdf
+
+# tests
+tests/
+
+analyze.sh
+c0_vc.sh
+
+vendor/
