@@ -68,8 +68,7 @@ def _hoist_exp(e: c0.Exp, tf: _TempFactory) -> Tuple[c0.Exp, List[c0.Stmt]]:
             setup = aarr + aidx
             tmp = tf.fresh()
             setup.append(c0.Decl(c0.IntType(), tmp, None))
-            # Safety checks (bounds) are handled by the assignment WLP rules.
-            setup.append(c0.Assign(tmp, c0.ArrayAccess(sarr, sidx)))
+            setup.append(c0.ArrRead(tmp, sarr, sidx))
             return c0.Var(tmp), setup
 
         case _:
@@ -214,8 +213,7 @@ def file_parse(text: str) -> c0.Program:
     # --- Safe Expressions (No memory access) ---
     SafeInt = Word(nums).setParseAction(lambda t: c0.IntConst(int(t[0])))
     SafeBool = (TRUE | FALSE).setParseAction(lambda t: c0.BoolConst(t[0] == "true"))
-    # C0 does not treat NULL as an array value, and we do not support pointers.
-    # Reject any occurrence of NULL with a clear error message.
+
     def _reject_null(s: str, loc: int, _toks):
         raise pyparsing.ParseFatalException(s, loc, "NULL is not supported (no pointers in this subset)")
     
@@ -268,12 +266,6 @@ def file_parse(text: str) -> c0.Program:
         arg = t[0][1]
         if op == "\\length": return c0.Length(arg)
         return c0.UnOp(op, arg)
-    
-    # SafeExp uses AtomWithArray now
-    # Check precedence: LogicExp includes SafeExp constructs?
-    # LogicExp is essentially SafeExp + Implication + Quantifiers? 
-    # Actually, L1_Logic was using L0_Logic (AtomWithArray). 
-    # SafeExp was using SafeAtom (BaseAtom without brackets).
     
     # Precedence for SafeExp
     SafeExp <<= infixNotation(AtomWithArray, [
@@ -708,7 +700,6 @@ def _typecheck_and_validate_program(src: str, prog: c0.Program) -> None:
             case c0.Assign(dest, src):
                 t_dest = lookup(env_stack, dest)
                 if is_int_array(t_dest):
-                    # No-aliasing restriction (and arrays are not first-class values).
                     fatal("assignment between `int[]` variables is not allowed (use `alloc_array` or indexed assignment)")
                 t_src = exp_type(env_stack, src)
                 if type(t_src) is not type(t_dest):
@@ -724,7 +715,6 @@ def _typecheck_and_validate_program(src: str, prog: c0.Program) -> None:
                     fatal("`alloc_array` count must have type `int`")
 
             case c0.ArrWrite(arr, idx, val):
-                # Enforce 1D arrays: the base must be a variable of type int[].
                 if not isinstance(arr, c0.Var):
                     fatal("array assignment must have the form `A[i] = e` where `A` is a variable")
                 t_arr = lookup(env_stack, arr.name)
@@ -734,6 +724,14 @@ def _typecheck_and_validate_program(src: str, prog: c0.Program) -> None:
                     fatal("array index must have type `int`")
                 if not is_int(exp_type(env_stack, val)):
                     fatal("array element value must have type `int`")
+
+            case c0.ArrRead(dest, arr, idx):
+                if not is_int(lookup(env_stack, dest)):
+                    fatal("array read destination must have type `int`")
+                if not is_int_array(exp_type(env_stack, arr)):
+                    fatal("array indexing expects an `int[]` value")
+                if not is_int(exp_type(env_stack, idx)):
+                    fatal("array index must have type `int`")
 
             case c0.If(cond, t, f):
                 if not is_bool(exp_type(env_stack, cond)):
@@ -778,7 +776,6 @@ def _typecheck_and_validate_program(src: str, prog: c0.Program) -> None:
             case _:
                 fatal(f"unsupported statement form: {type(s)}")
 
-    # Scope stack with function parameters in the outermost scope.
     env_stack: list[dict[str, c0.Type]] = [{}]
     if prog.args and len(prog.args) == 2:
         argc_name, in_name = prog.args
@@ -794,4 +791,3 @@ def _typecheck_and_validate_program(src: str, prog: c0.Program) -> None:
 
     for st in prog.stmts:
         check_stmt(env_stack, st)
-

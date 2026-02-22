@@ -140,10 +140,10 @@ def exp_enc(e: c0.Exp) -> z3.ExprRef:
             i = exp_enc(idx)
             return z3.Select(Arr.data(a), i)
 
-        case c0.ArrMake(length, init):
+        case c0.ArrMake(length):
             zlen = exp_enc(length)
-            zinit = exp_enc(init)
-            return Arr.mk(zlen, z3.K(IntSort, zinit))
+            zdata = z3.Const(f"_arrmake_{id(e)}", ArrDataSort)
+            return Arr.mk(zlen, zdata)
 
         case c0.ArrSet(arr, idx, val):
             a = exp_enc(arr)
@@ -258,4 +258,3 @@ def get_model(
         s.pop()
 
     return ModelResult("unsafe", base_model, None)
-

@@ -76,9 +76,8 @@ class ResultVar(Exp):
 
 @dataclass
 class ArrMake(Exp):
-    """An `int[]` value with a given length and a constant initial element value."""
+    """An `int[]` value with a given length and arbitrary (unknown) contents."""
     length: Exp
-    init: Exp
 
 @dataclass
 class ArrSet(Exp):

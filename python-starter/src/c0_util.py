@@ -29,7 +29,7 @@ def _vars_exp_cached(eid: int) -> frozenset[str]:
         case c0.UnOp(_, arg): return _vars_exp_cached(_subst_reg(arg))
         case c0.Length(arg): return _vars_exp_cached(_subst_reg(arg))
         case c0.ArrayAccess(arr, idx): return _vars_exp_cached(_subst_reg(arr)) | _vars_exp_cached(_subst_reg(idx))
-        case c0.ArrMake(length, init): return _vars_exp_cached(_subst_reg(length)) | _vars_exp_cached(_subst_reg(init))
+        case c0.ArrMake(length): return _vars_exp_cached(_subst_reg(length))
         case c0.ArrSet(arr, idx, val): return _vars_exp_cached(_subst_reg(arr)) | _vars_exp_cached(_subst_reg(idx)) | _vars_exp_cached(_subst_reg(val))
         case c0.ForAll(vars, body): return _vars_exp_cached(_subst_reg(body)) - frozenset(vars)
         case _: return frozenset()
@@ -47,8 +47,8 @@ def _subst_exp_cached(eid: int, x: str, rid: int) -> c0.Exp:
         case c0.Length(arg): return c0.Length(_subst_exp_cached(_subst_reg(arg), x, rid))
         case c0.ArrayAccess(arr, idx): return c0.ArrayAccess(_subst_exp_cached(_subst_reg(arr), x, rid), _subst_exp_cached(_subst_reg(idx), x, rid))
         case c0.ResultVar(): return e
-        case c0.ArrMake(length, init):
-            return c0.ArrMake(_subst_exp_cached(_subst_reg(length), x, rid), _subst_exp_cached(_subst_reg(init), x, rid))
+        case c0.ArrMake(length):
+            return c0.ArrMake(_subst_exp_cached(_subst_reg(length), x, rid))
         case c0.ArrSet(arr, idx, val):
             return c0.ArrSet(
                 _subst_exp_cached(_subst_reg(arr), x, rid),
@@ -88,8 +88,8 @@ def _subst_result_cached(eid: int, rid: int) -> c0.Exp:
         case c0.UnOp(op, arg): return c0.UnOp(op, _subst_result_cached(_subst_reg(arg), rid))
         case c0.Length(arg): return c0.Length(_subst_result_cached(_subst_reg(arg), rid))
         case c0.ArrayAccess(arr, idx): return c0.ArrayAccess(_subst_result_cached(_subst_reg(arr), rid), _subst_result_cached(_subst_reg(idx), rid))
-        case c0.ArrMake(length, init):
-            return c0.ArrMake(_subst_result_cached(_subst_reg(length), rid), _subst_result_cached(_subst_reg(init), rid))
+        case c0.ArrMake(length):
+            return c0.ArrMake(_subst_result_cached(_subst_reg(length), rid))
         case c0.ArrSet(arr, idx, val):
             return c0.ArrSet(
                 _subst_result_cached(_subst_reg(arr), rid),
@@ -114,7 +114,7 @@ def _simplify_cached(eid: int) -> c0.Exp:
         case c0.UnOp(op, arg): return c0.UnOp(op, _simplify_cached(_subst_reg(arg)))
         case c0.Length(arg): return c0.Length(_simplify_cached(_subst_reg(arg)))
         case c0.ArrayAccess(arr, idx): return c0.ArrayAccess(_simplify_cached(_subst_reg(arr)), _simplify_cached(_subst_reg(idx)))
-        case c0.ArrMake(length, init): return c0.ArrMake(_simplify_cached(_subst_reg(length)), _simplify_cached(_subst_reg(init)))
+        case c0.ArrMake(length): return c0.ArrMake(_simplify_cached(_subst_reg(length)))
         case c0.ArrSet(arr, idx, val):
             return c0.ArrSet(_simplify_cached(_subst_reg(arr)), _simplify_cached(_subst_reg(idx)), _simplify_cached(_subst_reg(val)))
         case c0.ForAll(vars, body): return c0.ForAll(vars, _simplify_cached(_subst_reg(body)))
@@ -141,8 +141,8 @@ def _stringify_cached(eid: int, indent: int, pretty: bool) -> str:
         case c0.Length(arg): return f"\\length({_stringify_cached(_subst_reg(arg), indent, pretty)})"
         case c0.ArrayAccess(arr, idx): return f"{_stringify_cached(_subst_reg(arr), indent, pretty)}[{_stringify_cached(_subst_reg(idx), indent, pretty)}]"
         case c0.ResultVar(): return "\\result"
-        case c0.ArrMake(length, init):
-            return f"ArrMake({_stringify_cached(_subst_reg(length), indent, pretty)}, {_stringify_cached(_subst_reg(init), indent, pretty)})"
+        case c0.ArrMake(length):
+            return f"ArrMake({_stringify_cached(_subst_reg(length), indent, pretty)})"
         case c0.ArrSet(arr, idx, val):
             return f"ArrSet({_stringify_cached(_subst_reg(arr), indent, pretty)}, {_stringify_cached(_subst_reg(idx), indent, pretty)}, {_stringify_cached(_subst_reg(val), indent, pretty)})"
         case c0.ForAll(vars, body):
@@ -291,7 +291,7 @@ class Renamer:
             case c0.UnOp(op, arg): return c0.UnOp(op, self.rename_exp(arg))
             case c0.Length(arg): return c0.Length(self.rename_exp(arg))
             case c0.ArrayAccess(arr, idx): return c0.ArrayAccess(self.rename_exp(arr), self.rename_exp(idx))
-            case c0.ArrMake(length, init): return c0.ArrMake(self.rename_exp(length), self.rename_exp(init))
+            case c0.ArrMake(length): return c0.ArrMake(self.rename_exp(length))
             case c0.ArrSet(arr, idx, val): return c0.ArrSet(self.rename_exp(arr), self.rename_exp(idx), self.rename_exp(val))
             case c0.ResultVar(): return c0.ResultVar()
             case c0.ForAll(vars, body): 

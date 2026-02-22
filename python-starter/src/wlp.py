@@ -8,10 +8,5 @@ import solver
 
 def check_safety(
     prog: c0.Program,
-    *,
-    verbose: bool = False,
-    print_vc: bool = False,
-    small_cex: bool = False,
-    small_cex_max: int = 32,
 ) -> bool:
     raise NotImplementedError("check_safety is not implemented")
