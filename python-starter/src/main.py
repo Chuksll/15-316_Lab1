@@ -36,7 +36,6 @@ def main() -> None:
     try:
         ok = check_safety(prog)
     except NotImplementedError:
-        print("here")
         print_and_exit("error", 1)
     except Exception as e:
         _ = e
