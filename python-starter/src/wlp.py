@@ -13,10 +13,15 @@ def check_safety(
     prog = c0_util.rename_program(prog) # avoid shadowing issues
 
     var_types = {}
-
+    
+    argc_var = None
+    argv_var = None
     if prog.args:
         var_types[prog.args[0]] = c0.IntType() # argc
         var_types[prog.args[1]] = c0.ArrayType(c0.IntType()) # argv
+        argc_var = c0.Var(prog.args[0])
+        argv_var = c0.Var(prog.args[1])
+
     
 
     def collect_types(stmts: list[c0.Stmt]):
@@ -41,6 +46,10 @@ def check_safety(
     vcs: list[c0.Exp] = [] # list of verification conditions (VCs) to check
 
     Pre = c0.BoolConst(True)
+    if argc_var and argv_var:
+        Pre = c0.BinOp("&&", Pre, c0.BinOp("==", c0.Length(argv_var), argc_var))
+        Pre = c0.BinOp("&&", Pre, c0.BinOp(">=", argc_var, c0.IntConst(0))) 
+        
     if prog.requires:
         for req in prog.requires: Pre = c0.BinOp("&&", Pre, req)
 
@@ -104,10 +113,10 @@ def check_safety(
                 
                 # Separate out loop VCs
                 preservation = c0.BinOp("=>", c0.BinOp("&&", I, cond), wlp_stmt(body, I))
-                vcs.append(c0.BinOp("=>", Pre, preservation)) # Preservation
+                vcs.append(preservation) # Preservation
 
                 exit_condition = c0.BinOp("=>", c0.BinOp("&&", I, c0.UnOp("!", cond)), Q)
-                vcs.append(c0.BinOp("=>", Pre, exit_condition))   # Exit
+                vcs.append(exit_condition)   # Exit
                 
                 # Ensure loop components are safe to evaluate
                 safe_loop = exp_safety(cond)

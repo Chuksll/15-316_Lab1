@@ -165,6 +165,7 @@ fmla_enc = exp_enc
 def check_validity(f: c0.Exp) -> bool:
     """Return `True` iff formula `f` is valid (i.e. its negation is UNSAT)."""
     s = get_solver()
+    s.set("threads", 2)
     zf = fmla_enc(f)
     # Simplify the VC before solving!
     vc = z3.simplify(z3.Not(zf))
