@@ -46,12 +46,15 @@ def check_safety(
     vcs: list[c0.Exp] = [] # list of verification conditions (VCs) to check
 
     Pre = c0.BoolConst(True)
-    if argc_var and argv_var:
-        Pre = c0.BinOp("&&", Pre, c0.BinOp("==", c0.Length(argv_var), argc_var))
-        Pre = c0.BinOp("&&", Pre, c0.BinOp(">=", argc_var, c0.IntConst(0))) 
+    
         
     if prog.requires:
-        for req in prog.requires: Pre = c0.BinOp("&&", Pre, req)
+        if argc_var and c0.BinOp(">=", argc_var, c0.IntConst(0))  not in prog.requires:
+            Pre = c0.BinOp("&&", Pre, c0.BinOp(">=", argc_var, c0.IntConst(0)))
+        if argv_var and argc_var and c0.BinOp("==", c0.Length(argv_var), argc_var) not in prog.requires:
+            Pre = c0.BinOp("&&", Pre, c0.BinOp("==", c0.Length(argv_var), argc_var))
+        for req in prog.requires: 
+            Pre = c0.BinOp("&&", Pre, req)
 
     def exp_safety(e: c0.Exp) -> c0.Exp:
             """Returns a boolean expression that is true if e is safe to evaluate."""
@@ -77,7 +80,10 @@ def check_safety(
         match s:
             case c0.Decl(t, name, init):
                 if init is None: # C0 defaults
-                    init = c0.ArrMake(c0.IntConst(0)) if isinstance(t, c0.ArrayType) else c0.IntConst(0)
+                    if isinstance(t, c0.ArrayType):
+                        return c0_util.subst_exp(Q, name, c0.ArrMake(c0.IntConst(0)))
+                    # init = c0.ArrMake(c0.IntConst(0)) if isinstance(t, c0.ArrayType) else c0.IntConst(0)
+                    return Q
                 return c0.BinOp("&&", exp_safety(init), c0_util.subst_exp(Q, name, init))
             
             case c0.Assign(dest, src):
